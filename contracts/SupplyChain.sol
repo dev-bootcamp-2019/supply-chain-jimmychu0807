@@ -1,4 +1,4 @@
-pragma solidity ^0.4.23;
+pragma solidity ^0.5.0;
 
 contract SupplyChain {
 
@@ -49,7 +49,7 @@ contract SupplyChain {
     _;
     uint _price = items[_sku].price;
     uint amountToRefund = msg.value - _price;
-    items[_sku].buyer.transfer(amountToRefund);
+    make_payable(items[_sku].buyer).transfer(amountToRefund);
   }
 
   /* For each of the following modifiers, use what you learned about modifiers
@@ -67,10 +67,17 @@ contract SupplyChain {
     skuCount = 0;
   }
 
-  function addItem(string _name, uint _price) public returns(bool){
+  function addItem(string memory _name, uint _price) public returns(bool){
     emit ForSale(skuCount);
 
-    items[skuCount] = Item({name: _name, sku: skuCount, price: _price, state: State.ForSale, seller: msg.sender, buyer: 0});
+    items[skuCount] = Item({
+      name: _name,
+      sku: skuCount,
+      price: _price,
+      state: State.ForSale,
+      seller: msg.sender,
+      buyer: address(0)
+    });
     skuCount = skuCount + 1;
     return true;
   }
@@ -90,7 +97,7 @@ contract SupplyChain {
 
     Item storage item = items[sku];
     item.buyer = msg.sender;
-    item.seller.transfer(item.price);
+    make_payable(item.seller).transfer(item.price);
     item.state = State.Sold;
   }
 
@@ -115,7 +122,7 @@ contract SupplyChain {
   }
 
   /* We have these functions completed so we can run tests, just ignore it :) */
-  function fetchItem(uint _sku) public view returns (string name, uint sku, uint price, uint state, address seller, address buyer) {
+  function fetchItem(uint _sku) public view returns (string memory name, uint sku, uint price, uint state, address seller, address buyer) {
     name = items[_sku].name;
     sku = items[_sku].sku;
     price = items[_sku].price;
@@ -125,4 +132,7 @@ contract SupplyChain {
     return (name, sku, price, state, seller, buyer);
   }
 
+  function make_payable(address x) internal pure returns (address payable) {
+    return address(uint160(x));
+  }
 }
