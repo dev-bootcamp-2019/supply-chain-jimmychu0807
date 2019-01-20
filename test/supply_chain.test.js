@@ -4,7 +4,6 @@ using Truffle version 5.0. You can check this by running "trufffle version"  in 
 installed, you can uninstall the existing version with `npm uninstall -g truffle` and install the latest version (5.0)
 with `npm install -g truffle`.
 */
-
 var SupplyChain = artifacts.require('SupplyChain')
 
 contract('SupplyChain', function(accounts) {
@@ -51,21 +50,30 @@ contract('SupplyChain', function(accounts) {
 
         const tx = await supplyChain.buyItem(sku, {from: bob, value: amount})
 
-    if (tx.logs[0].event) {
-        sku = tx.logs[0].args.sku.toString(10)
-        eventEmitted = true
-    }
+        if (tx.logs[0].event) {
+            sku = tx.logs[0].args.sku.toString(10)
+            eventEmitted = true
+        }
 
         var aliceBalanceAfter = await web3.eth.getBalance(alice)
         var bobBalanceAfter = await web3.eth.getBalance(bob)
 
         const result = await supplyChain.fetchItem.call(sku)
 
+        // For debugging
+        // console.log(result);
+        // console.log(`aliceBefore: ${aliceBalanceBefore} , aliceAfter: ${aliceBalanceAfter}, test: ${web3.utils.toBN(aliceBalanceBefore).add(web3.utils.toBN(price)).toString()}`);
+
         assert.equal(result[3].toString(10), 1, 'the state of the item should be "Sold", which should be declared second in the State Enum')
         assert.equal(result[5], bob, 'the buyer address should be set bob when he purchases an item')
         assert.equal(eventEmitted, true, 'adding an item should emit a Sold event')
-        assert.equal(parseInt(aliceBalanceAfter), parseInt(aliceBalanceBefore, 10) + parseInt(price, 10), "alice's balance should be increased by the price of the item")
-        assert.isBelow(parseInt(bobBalanceAfter), parseInt(bobBalanceBefore, 10) - parseInt(price, 10), "bob's balance should be reduced by more than the price of the item (including gas costs)")
+        assert.equal(aliceBalanceAfter,
+            web3.utils.toBN(aliceBalanceBefore).add(web3.utils.toBN(price)).toString(),
+            "alice's balance should be increased by the price of the item")
+
+        assert(web3.utils.toBN(bobBalanceAfter).lt(
+            web3.utils.toBN(bobBalanceBefore).sub(web3.utils.toBN(price))),
+            "bob's balance should be reduced by more than the price of the item (including gas costs)")
     })
 
     it("should allow the seller to mark the item as shipped", async() => {
